@@ -1,0 +1,13 @@
+flask
+pandas
+scikit-learn
+joblib
+matplotlib
+seaborn
+langchain
+langchain-google-genai
+langchain-community
+faiss-cpu
+sentence-transformers
+python-dotenv
+flask-cors
