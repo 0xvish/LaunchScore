@@ -2,8 +2,11 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
 import pandas as pd
+import numpy as np
 import re
 import os
+import torch
+import torch.nn as nn
 from dotenv import load_dotenv
 
 # LangChain / LLM Imports
@@ -24,9 +27,6 @@ else:
 # === Flask app setup ===
 app = Flask(__name__)
 CORS(app)
-
-# === Load ML pipeline ===
-ml_model = joblib.load("models/ml_pipeline.pkl")  # Contains preprocessing + model
 
 # === Load FAISS index ===
 embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -79,6 +79,33 @@ qa_chain = RetrievalQA.from_chain_type(
     chain_type_kwargs={"prompt": prompt}
 )
 
+# === Load Neural Network model and preprocessing ===
+class StartupSuccessNN(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+# Load vocabularies and scaler
+sector_vocab = joblib.load("models/sector_vocab.pkl")
+hq_vocab = joblib.load("models/hq_vocab.pkl")
+scaler = joblib.load("models/nn_scaler.pkl")
+
+# Load trained model
+nn_model = StartupSuccessNN(input_dim=4)
+nn_model.load_state_dict(torch.load("models/startup_nn.pt"))
+nn_model.eval()
+
 # === Inference route ===
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -87,33 +114,34 @@ def predict():
     # --- Input validation ---
     idea = data.get('idea')
     sector = data.get('sector')
-    stage = data.get('stage')
+    stage = data.get('stage')  # Not used in NN, could be used for LLM insight
     hq = data.get('headquarter')
+    founded = data.get('founded', 2020)  # Optional, default 2020
+    amount = data.get('amount', 1000000)  # Optional, default 1M
 
-    if not all([idea, sector, stage, hq]):
-        return jsonify({'error': 'Missing required fields: idea, sector, stage, headquarter'}), 400
+    if not all([idea, sector, hq]):
+        return jsonify({'error': 'Missing required fields: idea, sector, headquarter'}), 400
 
     # --- LLM inference ---
     llm_response = qa_chain.run(idea)
     match = re.search(r'(\d+(?:\.\d+)?)\/10', llm_response)
     llm_score = float(match.group(1)) if match else 0.0
-
     cleaned_llm_response = '\n'.join(llm_response.strip().split('\n')[1:]).strip()
 
-    # --- ML inference ---
-    input_df = pd.DataFrame([{
-        'Sector': sector,
-        'Stage': stage,
-        'HeadQuarter': hq
-    }])
-
+    # --- Neural Network inference ---
     try:
-        # Use full pipeline (handles encoding + prediction)
-        ml_score = ml_model.predict_proba(input_df)[0][1] * 10  # Scale 0–10
+        sector_idx = sector_vocab.get(sector, 0)
+        hq_idx = hq_vocab.get(hq, 0)
+        X = np.array([[sector_idx, hq_idx, founded, amount]])
+        X[:, 2:] = scaler.transform(X[:, 2:])  # normalize year and amount
+        X_tensor = torch.tensor(X, dtype=torch.float32)
+        with torch.no_grad():
+            prob = nn_model(X_tensor).item()
+            ml_score = prob * 10
     except Exception as e:
-        return jsonify({'error': f"ML model prediction failed: {str(e)}"}), 500
+        return jsonify({'error': f"Neural network prediction failed: {str(e)}"}), 500
 
-    # --- Final blended score ---
+    # --- Final score (blended) ---
     final_score = 0.5 * llm_score + 0.5 * ml_score
 
     return jsonify({
