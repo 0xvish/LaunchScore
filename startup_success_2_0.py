@@ -67,36 +67,6 @@ model = Pipeline([
 X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y)
 model.fit(X_train, y_train)
 
-# # prompt: print the catogories with their one hot encoding
-
-# import pandas as pd
-# from sklearn.preprocessing import OneHotEncoder
-
-# # Assuming 'df' and 'features' are defined as in the previous code
-
-# # Create the OneHotEncoder object
-# encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
-
-# # Fit the encoder on the categorical features
-# encoder.fit(df[features])
-
-# # Transform the features into one-hot encoded vectors
-# encoded_features = encoder.transform(df[features])
-
-# # Get the feature names after one-hot encoding
-# encoded_feature_names = list(encoder.get_feature_names_out(features))
-
-# # Create a DataFrame with the one-hot encoded features
-# encoded_df = pd.DataFrame(encoded_features, columns=encoded_feature_names)
-
-# # Print the categories and their one-hot encoding representation
-# for col in features:
-#   print(f"\nCategory: {col}")
-#   categories = encoder.categories_[features.index(col)]
-#   for i, category in enumerate(categories):
-#     encoded_col_name = f"{col}_{category}"
-#     print(f"  {category}: {encoded_df[encoded_col_name].values}")
-
 import os
 os.environ["GOOGLE_API_KEY"] = "AIzaSyCI6r8rXI0TvtQ5JsuiQAZ2LbXXskrqvcI"  # ← Replace with your key
 
@@ -242,4 +212,252 @@ print("✅ ML pipeline saved successfully.")
 
 vectorstore.save_local("models/startup_faiss_index")
 print("✅ FAISS index saved at models/startup_faiss_index/")
+
+import pandas as pd
+import joblib
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
+
+# === Load CSV ===
+df = pd.read_csv("startup_funding2021.csv")
+
+# === Basic Cleaning ===
+# Drop rows missing descriptions or amount
+df = df.dropna(subset=["What it does", "Amount($)", "Stage", "Sector", "HeadQuarter"])
+df = df.reset_index(drop=True)
+
+# Clean the "Amount($)" column: remove $ and commas
+df["Amount($)"] = df["Amount($)"].astype(str)
+df["Amount($)"] = df["Amount($)"].str.replace(r"[\$,]", "", regex=True)
+
+# Convert to numeric and handle errors
+df["Amount($)"] = pd.to_numeric(df["Amount($)"], errors='coerce')
+df = df.dropna(subset=["Amount($)"])
+
+# === Simulate Success Target ===
+# Assume Success if funding is greater than $1M
+df["Success"] = df["Amount($)"].apply(lambda x: 1 if x >= 1_000_000 else 0)
+
+# === Features and Target ===
+X = df[["Sector", "Stage", "HeadQuarter"]]
+y = df["Success"]
+
+# === Train-test split ===
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+
+# === Preprocessing: One-hot encode categorical features ===
+categorical_features = ["Sector", "Stage", "HeadQuarter"]
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features)
+    ]
+)
+
+# === ML Model ===
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# === Pipeline: Preprocessing + Model ===
+pipeline = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("classifier", model)
+])
+
+# === Train ===
+pipeline.fit(X_train, y_train)
+
+# === Save the full pipeline ===
+joblib.dump(pipeline, "ml_pipeline.pkl")
+
+print("✅ Training complete. Pipeline saved to models/ml_pipeline.pkl")
+
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+import re
+import joblib
+import os
+
+# ========== Load and Clean Data ==========
+df = pd.read_csv("startup_funding2021.csv")
+
+# Drop unusable columns
+df = df.drop(columns=["Company/Brand", "What it does", "Founders", "Investor"])
+
+# Clean amount column
+def clean_amount(val):
+    if pd.isna(val) or val == "$Undisclosed":
+        return None
+    val = val.replace("$", "").replace(",", "").strip()
+    match = re.match(r"([\d\.]+)([a-zA-Z]*)", val)
+    if match:
+        number = float(match.group(1))
+        unit = match.group(2).lower()
+        multiplier = {"k": 1e3, "l": 1e5, "m": 1e6, "cr": 1e7, "b": 1e9}.get(unit, 1)
+        return number * multiplier
+    return None
+
+df["Amount_clean"] = df["Amount($)"].apply(clean_amount)
+df["Amount_clean"] = df["Amount_clean"].fillna(df["Amount_clean"].median())
+
+# Handle missing values
+df["Founded"] = df["Founded"].fillna(df["Founded"].median())
+df["HeadQuarter"] = df["HeadQuarter"].fillna("Unknown")
+
+# Label encoding for categories
+sector_vocab = {sector: idx for idx, sector in enumerate(df["Sector"].dropna().unique())}
+hq_vocab = {hq: idx for idx, hq in enumerate(df["HeadQuarter"].unique())}
+
+df["sector_idx"] = df["Sector"].map(sector_vocab)
+df["hq_idx"] = df["HeadQuarter"].map(hq_vocab)
+
+# Save vocab for future inference
+joblib.dump(sector_vocab, "models/sector_vocab.pkl")
+joblib.dump(hq_vocab, "models/hq_vocab.pkl")
+
+# Create a binary target: High funding = success
+df["Success"] = (df["Amount_clean"] > 1e6).astype(int)
+
+# Final features and labels
+features = df[["sector_idx", "hq_idx", "Founded", "Amount_clean"]]
+labels = df["Success"]
+
+# Normalize numerical columns
+scaler = MinMaxScaler()
+features[["Founded", "Amount_clean"]] = scaler.fit_transform(features[["Founded", "Amount_clean"]])
+joblib.dump(scaler, "models/nn_scaler.pkl")
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(features.values, labels.values, test_size=0.2, random_state=42)
+
+# ========== PyTorch Dataset and Model ==========
+class StartupDataset(torch.utils.data.Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32).unsqueeze(1)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+train_ds = StartupDataset(X_train, y_train)
+test_ds = StartupDataset(X_test, y_test)
+
+train_loader = torch.utils.data.DataLoader(train_ds, batch_size=32, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_ds, batch_size=32)
+
+class StartupSuccessNN(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+model = StartupSuccessNN(input_dim=4)
+criterion = nn.BCELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# ========== Training Loop ==========
+EPOCHS = 20
+for epoch in range(EPOCHS):
+    model.train()
+    total_loss = 0
+    for batch_X, batch_y in train_loader:
+        optimizer.zero_grad()
+        preds = model(batch_X)
+        loss = criterion(preds, batch_y)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    print(f"Epoch {epoch+1}/{EPOCHS} - Loss: {total_loss:.4f}")
+
+# ========== Evaluation ==========
+model.eval()
+correct = 0
+total = 0
+with torch.no_grad():
+    for X_batch, y_batch in test_loader:
+        preds = model(X_batch).round()
+        correct += (preds == y_batch).sum().item()
+        total += y_batch.size(0)
+print(f"✅ Accuracy on test set: {correct/total:.2%}")
+
+# ========== Save Model ==========
+os.makedirs("models", exist_ok=True)
+torch.save(model.state_dict(), "models/startup_nn.pt")
+print("✅ Model saved to models/startup_nn.pt")
+
+import torch
+import torch.nn as nn
+import joblib
+import numpy as np
+
+# ==== Load model + vocab + scaler ====
+class StartupSuccessNN(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+model = StartupSuccessNN(input_dim=4)
+model.load_state_dict(torch.load("models/startup_nn.pt"))
+model.eval()
+
+sector_vocab = joblib.load("models/sector_vocab.pkl")
+hq_vocab = joblib.load("models/hq_vocab.pkl")
+scaler = joblib.load("models/nn_scaler.pkl")
+
+# ==== Example Input ====
+# Feel free to change this to test!
+idea_input = {
+    "sector": "IT",
+    "headquarter": "Bangalore",
+    "founded": 2020,
+    "amount": 100000000  # $5M
+}
+
+# ==== Preprocess Input ====
+sector_idx = sector_vocab.get(idea_input["sector"], 0)
+hq_idx = hq_vocab.get(idea_input["headquarter"], 0)
+founded = idea_input["founded"]
+amount = idea_input["amount"]
+
+X = np.array([[sector_idx, hq_idx, founded, amount]])
+X[:, 2:] = scaler.transform(X[:, 2:])  # normalize founded + amount
+
+X_tensor = torch.tensor(X, dtype=torch.float32)
+
+# ==== Make Prediction ====
+with torch.no_grad():
+    prob = model(X_tensor).item()
+    success_score = round(prob * 10, 2)
+
+print(f"🔍 Predicted Success Score: {success_score}/10")
 

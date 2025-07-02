@@ -3,117 +3,312 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Startup Success Predictor</title>
+    <title>launchscore</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            animation: {
+              "fade-in": "fadeIn 0.5s ease-in-out",
+              "slide-up": "slideUp 0.6s ease-out",
+              "bounce-slow": "bounce 2s infinite",
+              "pulse-slow": "pulse 3s infinite",
+              "gradient-x": "gradient-x 15s ease infinite",
+            },
+            keyframes: {
+              fadeIn: {
+                "0%": { opacity: "0" },
+                "100%": { opacity: "1" },
+              },
+              slideUp: {
+                "0%": { transform: "translateY(30px)", opacity: "0" },
+                "100%": { transform: "translateY(0)", opacity: "1" },
+              },
+              "gradient-x": {
+                "0%, 100%": {
+                  "background-size": "200% 200%",
+                  "background-position": "left center",
+                },
+                "50%": {
+                  "background-size": "200% 200%",
+                  "background-position": "right center",
+                },
+              },
+            },
+          },
+        },
+      };
+    </script>
   </head>
   <body
-    class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col items-center px-4 py-10"
+    class="bg-gradient-to-br from-gray-50 via-white to-slate-50 text-gray-900 font-sans min-h-screen flex flex-col items-center px-3 sm:px-4 py-6 sm:py-10 relative overflow-x-hidden"
   >
-    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8 space-y-6">
-      <h1 class="text-3xl font-bold text-indigo-600 text-center">
-        🚀 Startup Success Predictor
-      </h1>
+    <!-- Minimal background elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
+        class="absolute -top-4 -left-4 w-24 h-24 sm:w-32 sm:h-32 bg-slate-100 rounded-full opacity-10 animate-bounce-slow"
+      ></div>
+      <div
+        class="absolute top-1/4 -right-8 w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full opacity-15 animate-pulse-slow"
+      ></div>
+      <div
+        class="absolute bottom-1/4 -left-6 w-20 h-20 sm:w-28 sm:h-28 bg-slate-100 rounded-full opacity-10 animate-bounce-slow"
+        style="animation-delay: 1s"
+      ></div>
+      <div
+        class="absolute -bottom-4 -right-4 w-18 h-18 sm:w-24 sm:h-24 bg-gray-100 rounded-full opacity-12 animate-pulse-slow"
+        style="animation-delay: 2s"
+      ></div>
+    </div>
 
-      <form id="predict-form" class="space-y-4">
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Startup Idea</label
+    <div
+      class="w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 animate-slide-up relative z-10"
+    >
+      <!-- Header with minimal styling -->
+      <div class="text-center space-y-2">
+        <h1
+          class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 animate-fade-in"
+        >
+          🚀 launchscore
+        </h1>
+        <p
+          class="text-xs sm:text-sm text-gray-600 animate-fade-in"
+          style="animation-delay: 0.3s"
+        >
+          Predict your startup's success with AI-powered analysis
+        </p>
+        <div
+          class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-sm text-gray-700 animate-fade-in"
+          style="animation-delay: 0.4s"
+        >
+          <div class="font-semibold text-blue-800 mb-2">
+            🔍 How Our AI Works:
+          </div>
+          <div class="space-y-1">
+            <div>
+              <span class="font-medium">💡 Startup Idea:</span> Analyzed using
+              <span class="text-blue-700">LLM & Semantic Search</span>
+            </div>
+            <div>
+              <span class="font-medium">📊 Other Fields:</span> Processed by
+              <span class="text-blue-700">Neural Network Regression Model</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form
+        id="predict-form"
+        class="space-y-3 sm:space-y-4 animate-fade-in"
+        style="animation-delay: 0.5s"
+      >
+        <div class="group">
+          <label
+            class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
           >
+            💡 Startup Idea
+            <span class="text-red-500">*</span>
+            <span class="text-blue-600 text-xs font-normal"
+              >(LLM + Semantic Analysis)</span
+            >
+          </label>
           <textarea
             name="idea"
             rows="3"
             required
-            placeholder="Describe your startup idea..."
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+            placeholder="Describe your innovative startup idea in detail - this will be analyzed by our AI language model..."
+            class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 resize-none invalid:border-red-300 invalid:focus:ring-red-300"
           ></textarea>
+          <div class="error-message hidden text-red-500 text-xs mt-1">
+            Please describe your startup idea
+          </div>
+          <div class="text-xs text-blue-600 mt-1">
+            📝 This field uses advanced NLP and semantic search to understand
+            your idea's potential
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Sector</label
-          >
-          <input
-            type="text"
-            name="sector"
-            required
-            placeholder="e.g. FinTech, HealthTech"
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-          />
+
+        <!-- Two column layout for larger screens -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+          <div class="text-xs text-green-700">
+            🤖 <span class="font-semibold">Neural Network Fields:</span> The
+            following fields are processed by our regression model trained on
+            startup success patterns
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Funding Stage</label
-          >
-          <input
-            type="text"
-            name="stage"
-            required
-            placeholder="e.g. Seed, Series A"
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-          />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div class="group">
+            <label
+              class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
+            >
+              🏢 Sector
+              <span class="text-red-500">*</span>
+              <span class="text-green-600 text-xs font-normal">(NN Model)</span>
+            </label>
+            <input
+              type="text"
+              name="sector"
+              required
+              placeholder="e.g. FinTech, HealthTech"
+              class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 invalid:border-red-300 invalid:focus:ring-red-300"
+            />
+            <div class="error-message hidden text-red-500 text-xs mt-1">
+              Please enter the sector
+            </div>
+          </div>
+          <div class="group">
+            <label
+              class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
+            >
+              📈 Funding Stage
+              <span class="text-red-500">*</span>
+              <span class="text-green-600 text-xs font-normal">(NN Model)</span>
+            </label>
+            <input
+              type="text"
+              name="stage"
+              required
+              placeholder="e.g. Seed, Series A"
+              class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 invalid:border-red-300 invalid:focus:ring-red-300"
+            />
+            <div class="error-message hidden text-red-500 text-xs mt-1">
+              Please enter the funding stage
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Headquarter</label
-          >
-          <input
-            type="text"
-            name="headquarter"
-            required
-            placeholder="e.g. Bengaluru, Mumbai"
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-          />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div class="group">
+            <label
+              class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
+            >
+              🏙️ Headquarter
+              <span class="text-red-500">*</span>
+              <span class="text-green-600 text-xs font-normal">(NN Model)</span>
+            </label>
+            <input
+              type="text"
+              name="headquarter"
+              required
+              placeholder="e.g. Bengaluru, Mumbai"
+              class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 invalid:border-red-300 invalid:focus:ring-red-300"
+            />
+            <div class="error-message hidden text-red-500 text-xs mt-1">
+              Please enter the headquarter location
+            </div>
+          </div>
+          <div class="group">
+            <label
+              class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
+            >
+              📅 Founded Year
+              <span class="text-red-500">*</span>
+              <span class="text-green-600 text-xs font-normal">(NN Model)</span>
+            </label>
+            <input
+              type="number"
+              name="founded"
+              min="2000"
+              max="2025"
+              required
+              placeholder="e.g. 2021"
+              class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 invalid:border-red-300 invalid:focus:ring-red-300"
+            />
+            <div class="error-message hidden text-red-500 text-xs mt-1">
+              Please enter the founded year (2000-2025)
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Founded Year (optional)</label
+
+        <div class="group">
+          <label
+            class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 group-focus-within:text-gray-900 transition-colors duration-200"
           >
-          <input
-            type="number"
-            name="founded"
-            min="2000"
-            max="2025"
-            placeholder="e.g. 2021"
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-600"
-            >Funding Amount (optional)</label
-          >
+            💰 Funding Amount
+            <span class="text-red-500">*</span>
+            <span class="text-green-600 text-xs font-normal">(NN Model)</span>
+          </label>
           <input
             type="number"
             name="amount"
             min="10000"
             step="10000"
+            required
             placeholder="e.g. ₹5000000"
-            class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+            class="w-full border border-gray-300 rounded-lg p-3 text-sm sm:text-base mt-1 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-all duration-300 hover:border-gray-400 invalid:border-red-300 invalid:focus:ring-red-300"
           />
+          <div class="error-message hidden text-red-500 text-xs mt-1">
+            Please enter the funding amount (minimum ₹10,000)
+          </div>
         </div>
 
         <button
           type="submit"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition-all duration-200"
+          class="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3 sm:py-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg active:scale-95 text-sm sm:text-base"
         >
-          Predict
+          <span class="flex items-center justify-center space-x-2">
+            <span>🔮 Predict My Success</span>
+          </span>
         </button>
       </form>
 
-      <div id="result-section" class="mt-6 hidden">
-        <h2 class="text-xl font-bold text-gray-700 mb-2">
-          📊 Prediction Result
-        </h2>
-        <div
-          id="result-output"
-          class="prose prose-indigo max-w-none bg-gray-50 border border-gray-200 rounded-xl p-4"
-        ></div>
+      <div id="result-section" class="mt-4 sm:mt-6 hidden animate-fade-in">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center"
+          >
+            <span class="text-xl sm:text-2xl mr-2">📊</span>
+            Prediction Results
+          </h2>
+
+          <!-- Loading state -->
+          <div id="loading-state" class="hidden">
+            <div class="flex items-center justify-center py-8">
+              <div
+                class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-gray-800"
+              ></div>
+              <span class="ml-3 text-sm sm:text-base text-gray-600"
+                >Analyzing your startup...</span
+              >
+            </div>
+          </div>
+
+          <!-- Results content -->
+          <div
+            id="result-output"
+            class="prose prose-sm sm:prose-base prose-gray max-w-none bg-white border border-gray-200 rounded-lg p-3 sm:p-4 text-sm sm:text-base"
+          ></div>
+
+          <!-- Score display -->
+          <div id="score-output" class="mt-4"></div>
+        </div>
       </div>
+    </div>
+
+    <!-- Footer -->
+    <div
+      class="mt-6 sm:mt-8 text-center animate-fade-in"
+      style="animation-delay: 0.8s"
+    >
+      <p class="text-xs sm:text-sm text-gray-500 mb-2">
+        Built with ❤️ by
+        <a
+          href="https://vishvam.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-gray-700 hover:text-gray-900 transition-colors duration-200 font-medium"
+          >0xvish</a
+        >
+      </p>
     </div>
 
     <script>
       const form = document.getElementById("predict-form");
       const resultSection = document.getElementById("result-section");
       const resultOutput = document.getElementById("result-output");
+      const loadingState = document.getElementById("loading-state");
 
       let scoreOutput = document.getElementById("score-output");
       if (!scoreOutput) {
@@ -123,8 +318,92 @@
         resultOutput.parentElement.appendChild(scoreOutput);
       }
 
+      // Add input animations and validation
+      const inputs = document.querySelectorAll("input, textarea");
+      inputs.forEach((input) => {
+        input.addEventListener("focus", function () {
+          this.parentElement.classList.add("animate-pulse");
+        });
+        input.addEventListener("blur", function () {
+          this.parentElement.classList.remove("animate-pulse");
+          validateField(this);
+        });
+        input.addEventListener("input", function () {
+          validateField(this);
+        });
+      });
+
+      // Field validation function
+      function validateField(field) {
+        const group = field.parentElement;
+        const errorMessage = group.querySelector(".error-message");
+
+        if (field.hasAttribute("required") && !field.value.trim()) {
+          field.classList.add("border-red-300");
+          field.classList.remove("border-gray-300");
+          if (errorMessage) errorMessage.classList.remove("hidden");
+          return false;
+        } else if (field.type === "number" && field.value) {
+          const value = parseFloat(field.value);
+          const min = parseFloat(field.getAttribute("min"));
+          const max = parseFloat(field.getAttribute("max"));
+
+          if (min && value < min) {
+            field.classList.add("border-red-300");
+            field.classList.remove("border-gray-300");
+            if (errorMessage) errorMessage.classList.remove("hidden");
+            return false;
+          } else if (max && value > max) {
+            field.classList.add("border-red-300");
+            field.classList.remove("border-gray-300");
+            if (errorMessage) errorMessage.classList.remove("hidden");
+            return false;
+          }
+        }
+
+        // Field is valid
+        field.classList.remove("border-red-300");
+        field.classList.add("border-gray-300");
+        if (errorMessage) errorMessage.classList.add("hidden");
+        return true;
+      }
+
+      // Form validation function
+      function validateForm() {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll("[required]");
+
+        requiredFields.forEach((field) => {
+          if (!validateField(field)) {
+            isValid = false;
+          }
+        });
+
+        if (!isValid) {
+          // Show error notification
+          const notification = document.createElement("div");
+          notification.className =
+            "fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-slide-up";
+          notification.innerHTML =
+            "⚠️ Please fill in all required fields correctly";
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.remove();
+          }, 4000);
+        }
+
+        return isValid;
+      }
+
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
+
+        // Validate form before submission
+        if (!validateForm()) {
+          return;
+        }
+
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
 
@@ -132,9 +411,18 @@
         if (data.founded) data.founded = parseInt(data.founded);
         if (data.amount) data.amount = parseFloat(data.amount);
 
-        resultOutput.innerHTML = "⏳ Analyzing...";
-        scoreOutput.innerHTML = "";
+        // Show loading state
         resultSection.classList.remove("hidden");
+        loadingState.classList.remove("hidden");
+        resultOutput.style.display = "none";
+        scoreOutput.style.display = "none";
+
+        // Add loading animation to button
+        const button = form.querySelector('button[type="submit"]');
+        const originalText = button.innerHTML;
+        button.innerHTML =
+          '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>Analyzing...';
+        button.disabled = true;
 
         try {
           const res = await fetch("/predict", {
@@ -146,26 +434,74 @@
           const result = await res.json();
           console.log(result);
 
-          const markdown = result.llm_analysis || "No analysis provided.";
-          resultOutput.innerHTML = marked.parse(markdown);
+          // Hide loading, show results with animation
+          setTimeout(() => {
+            loadingState.classList.add("hidden");
+            resultOutput.style.display = "block";
+            scoreOutput.style.display = "block";
 
-          scoreOutput.innerHTML = `
-      <div class="bg-white mt-4 p-4 rounded-lg border border-gray-200 shadow-sm text-sm text-gray-700 space-y-1">
-        <p><strong>🤖 ML Score:</strong> ${result.ml_score?.toFixed(2)} / 10</p>
-        <p><strong>🧠 LLM Score:</strong> ${result.llm_score?.toFixed(
-          2
-        )} / 10</p>
-        <p><strong>⭐ Final Score:</strong> ${result.final_score?.toFixed(
-          2
-        )} / 10</p>
-      </div>
-    `;
+            const markdown = result.llm_analysis || "No analysis provided.";
+            resultOutput.innerHTML = marked.parse(markdown);
+
+            scoreOutput.innerHTML = `
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 animate-slide-up">
+                <div class="bg-gray-800 text-white p-3 sm:p-4 rounded-lg text-center transform hover:scale-105 transition-transform duration-200">
+                  <div class="text-lg sm:text-xl font-bold">🤖 ML</div>
+                  <div class="text-xl sm:text-2xl font-bold">${result.ml_score?.toFixed(
+                    1
+                  )}</div>
+                  <div class="text-xs sm:text-sm opacity-90">/ 10</div>
+                </div>
+                <div class="bg-gray-700 text-white p-3 sm:p-4 rounded-lg text-center transform hover:scale-105 transition-transform duration-200">
+                  <div class="text-lg sm:text-xl font-bold">🧠 LLM</div>
+                  <div class="text-xl sm:text-2xl font-bold">${result.llm_score?.toFixed(
+                    1
+                  )}</div>
+                  <div class="text-xs sm:text-sm opacity-90">/ 10</div>
+                </div>
+                <div class="bg-gray-900 text-white p-3 sm:p-4 rounded-lg text-center transform hover:scale-105 transition-transform duration-200 sm:col-span-1 col-span-1">
+                  <div class="text-lg sm:text-xl font-bold">⭐ Final</div>
+                  <div class="text-xl sm:text-2xl font-bold">${result.final_score?.toFixed(
+                    1
+                  )}</div>
+                  <div class="text-xs sm:text-sm opacity-90">/ 10</div>
+                </div>
+              </div>
+            `;
+          }, 800);
         } catch (err) {
           console.error("Error:", err);
-          resultOutput.innerHTML = "❌ Error: Could not get prediction.";
+          loadingState.classList.add("hidden");
+          resultOutput.style.display = "block";
+          resultOutput.innerHTML = `
+            <div class="text-center py-6">
+              <div class="text-4xl mb-2">❌</div>
+              <div class="text-red-600 font-semibold">Error: Could not get prediction</div>
+              <div class="text-sm text-gray-500 mt-1">Please try again later</div>
+            </div>
+          `;
           scoreOutput.innerHTML = "";
+        } finally {
+          // Restore button
+          button.innerHTML = originalText;
+          button.disabled = false;
         }
       });
+
+      // Add smooth scroll to results
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.transform = "translateY(0)";
+            entry.target.style.opacity = "1";
+          }
+        });
+      });
+
+      // Observe result section for smooth reveal
+      if (resultSection) {
+        observer.observe(resultSection);
+      }
     </script>
   </body>
 </html>
