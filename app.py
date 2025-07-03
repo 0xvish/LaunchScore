@@ -26,7 +26,7 @@ else:
 
 # === Flask app setup ===
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:3000", "https://*.vercel.app"])  # Allow frontend origins
 
 # === Load FAISS index ===
 embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -46,29 +46,30 @@ llm = ChatGoogleGenerativeAI(
 prompt = PromptTemplate(
     input_variables=["context", "question"],
     template="""
-You are a startup venture analyst with deep knowledge of market trends, startup funding, and investor behavior.
+🚀 **Startup Success Oracle** here! Let me analyze this venture with startup wisdom and market intelligence.
 
-You are provided with descriptions and funding data of similar startups:
-
+**Similar Startups for Reference:**
 {context}
 
-A new startup idea has been proposed:
+**New Startup Analysis:**
+{question}
 
-"{question}"
+**Your Mission:**
+1. 📊 **Compare** with similar startups from the database
+2. 🎯 **Evaluate** market potential, competition, and timing  
+3. 🔮 **Predict** success likelihood (0-10 scale)
+4. 💭 **Highlight** specific contextual factors the algorithm likely missed
 
-Your tasks:
-1. Analyze the idea and compare it with the retrieved startups.
-2. Evaluate market demand, originality, competition, and funding trends.
-3. Predict its likelihood of success on a scale of 0 to 10.
-4. Justify the score with a brief analysis including potential risks and advantages.
+**Response Format:**
+Success Score: X/10
 
-Format your response like this:
+**Key Insights:**
+- 💪 **Strengths:** [What works for this specific venture]
+- ⚠️ **Risks:** [Real challenges in this market/location/timing]
+- 🎯 **Market:** [Opportunity assessment with local context]
+- � **Algorithmic Blind Spots:** [Specific factors like local competition, cultural nuances, timing advantages/disadvantages that data models typically miss]
 
-Success Score: <score>/10  
-Reasoning:  
-- <Insight 1>  
-- <Insight 2>  
-- ...
+Keep it practical and market-focused! 🎯
 """
 )
 
@@ -122,12 +123,6 @@ def predict():
     if not all([idea, sector, hq]):
         return jsonify({'error': 'Missing required fields: idea, sector, headquarter'}), 400
 
-    # --- LLM inference ---
-    llm_response = qa_chain.run(idea)
-    match = re.search(r'(\d+(?:\.\d+)?)\/10', llm_response)
-    llm_score = float(match.group(1)) if match else 0.0
-    cleaned_llm_response = '\n'.join(llm_response.strip().split('\n')[1:]).strip()
-
     # --- Neural Network inference ---
     try:
         sector_idx = sector_vocab.get(sector, 0)
@@ -141,6 +136,28 @@ def predict():
     except Exception as e:
         return jsonify({'error': f"Neural network prediction failed: {str(e)}"}), 500
 
+    # --- LLM inference with ML context ---
+    formatted_question = f"""
+💡 **Idea:** {idea}
+🏢 **Sector:** {sector} | 📈 **Stage:** {stage} | 🏙️ **HQ:** {hq}
+📅 **Founded:** {founded} | 💰 **Funding:** ₹{amount:,}
+
+🤖 **ML Model Prediction:** {round(ml_score, 2)}/10
+
+Analyze this startup comprehensively. Consider how location-specific advantages/disadvantages, sector trends, and timing factors might create blind spots in algorithmic predictions. Focus on real-world context the model likely missed.
+"""
+    
+    llm_response = qa_chain.run(formatted_question)
+    
+    # Extract LLM score and clean response
+    match = re.search(r'(\d+(?:\.\d+)?)\/10', llm_response)
+    llm_score = float(match.group(1)) if match else 0.0
+    cleaned_llm_response = '\n'.join(llm_response.strip().split('\n')[1:]).strip()
+    
+    # If cleaned response is too short, use full response
+    if len(cleaned_llm_response) < 20:
+        cleaned_llm_response = llm_response.strip()
+
     # --- Final score (blended) ---
     final_score = 0.5 * llm_score + 0.5 * ml_score
 
@@ -151,12 +168,17 @@ def predict():
         'llm_analysis': cleaned_llm_response
     })
 
+# === Health check route ===
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy', 'service': 'launchscore-backend'}), 200
+
 # === Frontend route ===
-@app.route('/')
-def index():
-    return render_template('index.html')
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
+# Frontend now served by Next.js app; HTML route disabled
 
 # === Run the app ===
 if __name__ == '__main__':
-    app.run(debug=True)
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
