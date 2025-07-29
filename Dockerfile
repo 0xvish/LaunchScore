@@ -1,29 +1,34 @@
-# Dockerfile for Startup Success Predictor
-
-# Use official Python runtime as a parent image
+# Use Python 3.11 slim image
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (if any needed by your models or FAISS)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     build-essential \
+    curl \
+    software-properties-common \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt ./
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source
+# Copy application files
 COPY . .
 
-# Expose port
-EXPOSE 5000
+# Create models directory if it doesn't exist
+RUN mkdir -p models
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV PYTHONUNBUFFERED=1
+# Expose Streamlit port
+EXPOSE 8501
 
-# Run the application with Gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app", "--workers", "4"]
+# Health check
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
+# Run Streamlit app
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--server.fileWatcherType=none", "--browser.gatherUsageStats=false"]

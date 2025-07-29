@@ -1,20 +1,33 @@
 version: "3.8"
-services:
-  app:
-    build: .
-    container_name: launchscore-backend
-    restart: unless-stopped
-    env_file: .env
-    expose:
-      - "5000"
 
-  nginx:
-    image: nginx:stable-alpine
-    container_name: launchscore-nginx
-    restart: unless-stopped
+services:
+  launchscore:
+    build: .
+    container_name: launchscore-app
     ports:
-      - "5000:80" # Expose backend API on port 5000
+      - "8501:8501"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - ./models:/app/models:ro # Mount models directory as read-only
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: launchscore-nginx
+    ports:
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - app
+      - launchscore
+    restart: unless-stopped
+    profiles:
+      - proxy # Use with: docker-compose --profile proxy up
